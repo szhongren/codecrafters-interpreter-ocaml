@@ -12,6 +12,11 @@ type lexeme =
   | RIGHT_BRACE
   | EOF
 
+type scan_result = {
+  tokens: lexeme list;
+  has_errors: bool;
+}
+
 let char_to_lexeme = function
   | ',' -> Some COMMA
   | '.' -> Some DOT
@@ -24,9 +29,7 @@ let char_to_lexeme = function
   | ')' -> Some RIGHT_PAREN
   | '{' -> Some LEFT_BRACE
   | '}' -> Some RIGHT_BRACE
-  | c ->
-      Printf.eprintf "[line 1] Error: Unexpected character: %c\n" c;
-      None
+  | _ -> None
 
 let lexeme_to_str = function
   | COMMA -> ","
@@ -58,7 +61,6 @@ let lexeme_display = function
 
 let scan str =
   let input = ref (String.to_seq str) in
-  (* this is a generator that captures the input above *)
   let next_char () =
     match !input () with
     | Seq.Nil -> raise End_of_file
@@ -66,18 +68,20 @@ let scan str =
         input := rest;
         c
   in
-  let rec scan_tokens acc =
+  let rec scan_tokens acc has_errors =
     try
       let c = next_char () in
       match c with
-      | ' ' | '\t' | '\n' | '\r' -> scan_tokens acc
+      | ' ' | '\t' | '\n' | '\r' -> scan_tokens acc has_errors
       | _ -> (
           match char_to_lexeme c with
-          | Some token -> scan_tokens (token :: acc)
-          | None -> scan_tokens acc)
-    with End_of_file -> List.rev (EOF :: acc)
+          | Some token -> scan_tokens (token :: acc) has_errors
+          | None -> 
+              Printf.eprintf "[line 1] Error: Unexpected character: %c\n" c;
+              scan_tokens acc true)
+    with End_of_file -> { tokens = List.rev (EOF :: acc); has_errors }
   in
-  scan_tokens []
+  scan_tokens [] false
 
 let () =
   if Array.length Sys.argv < 3 then (
@@ -96,7 +100,10 @@ let () =
   (* You can use print statements as follows for debugging, they'll be visible when running tests. *)
   Printf.eprintf "Logs from your program will appear here!\n";
 
+  let result = scan file_contents in
   List.iter
     (fun lex ->
       Printf.printf "%s %s null\n" (lexeme_display lex) (lexeme_to_str lex))
-    (scan file_contents)
+    result.tokens;
+
+  exit (if result.has_errors then 65 else 0)
