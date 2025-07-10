@@ -16,7 +16,7 @@ let lexeme_display = function
   | EOF -> "EOF"
 
 let rec scan str =
-  if String.length str == 0 then []
+  if String.length str == 0 then [ EOF ]
   else char_to_lexeme str.[0] :: scan (String.sub str 1 (String.length str - 1))
 
 let () =
