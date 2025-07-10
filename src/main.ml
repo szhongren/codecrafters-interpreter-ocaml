@@ -13,18 +13,20 @@ type lexeme =
   | EOF
 
 let char_to_lexeme = function
-  | ',' -> COMMA
-  | '.' -> DOT
-  | '-' -> MINUS
-  | '+' -> PLUS
-  | ';' -> SEMICOLON
-  | '/' -> SLASH
-  | '*' -> STAR
-  | '(' -> LEFT_PAREN
-  | ')' -> RIGHT_PAREN
-  | '{' -> LEFT_BRACE
-  | '}' -> RIGHT_BRACE
-  | _ -> EOF
+  | ',' -> Some COMMA
+  | '.' -> Some DOT
+  | '-' -> Some MINUS
+  | '+' -> Some PLUS
+  | ';' -> Some SEMICOLON
+  | '/' -> Some SLASH
+  | '*' -> Some STAR
+  | '(' -> Some LEFT_PAREN
+  | ')' -> Some RIGHT_PAREN
+  | '{' -> Some LEFT_BRACE
+  | '}' -> Some RIGHT_BRACE
+  | c ->
+      Printf.eprintf "[line 1] Error: Unexpected character: %c\n" c;
+      None
 
 let lexeme_to_str = function
   | COMMA -> ","
@@ -54,9 +56,28 @@ let lexeme_display = function
   | RIGHT_BRACE -> "RIGHT_BRACE"
   | EOF -> "EOF"
 
-let rec scan str =
-  if String.length str == 0 then [ EOF ]
-  else char_to_lexeme str.[0] :: scan (String.sub str 1 (String.length str - 1))
+let scan str =
+  let input = ref (String.to_seq str) in
+  (* this is a generator that captures the input above *)
+  let next_char () =
+    match !input () with
+    | Seq.Nil -> raise End_of_file
+    | Seq.Cons (c, rest) ->
+        input := rest;
+        c
+  in
+  let rec scan_tokens acc =
+    try
+      let c = next_char () in
+      match c with
+      | ' ' | '\t' | '\n' | '\r' -> scan_tokens acc
+      | _ -> (
+          match char_to_lexeme c with
+          | Some token -> scan_tokens (token :: acc)
+          | None -> scan_tokens acc)
+    with End_of_file -> List.rev (EOF :: acc)
+  in
+  scan_tokens []
 
 let () =
   if Array.length Sys.argv < 3 then (
