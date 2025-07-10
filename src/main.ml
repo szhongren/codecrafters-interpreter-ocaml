@@ -1,6 +1,25 @@
-type lexeme = LEFT_PAREN | RIGHT_PAREN | LEFT_BRACE | RIGHT_BRACE | EOF
+type lexeme =
+  | COMMA
+  | DOT
+  | MINUS
+  | PLUS
+  | SEMICOLON
+  | SLASH
+  | STAR
+  | LEFT_PAREN
+  | RIGHT_PAREN
+  | LEFT_BRACE
+  | RIGHT_BRACE
+  | EOF
 
 let char_to_lexeme = function
+  | ',' -> COMMA
+  | '.' -> DOT
+  | '-' -> MINUS
+  | '+' -> PLUS
+  | ';' -> SEMICOLON
+  | '/' -> SLASH
+  | '*' -> STAR
   | '(' -> LEFT_PAREN
   | ')' -> RIGHT_PAREN
   | '{' -> LEFT_BRACE
@@ -8,6 +27,13 @@ let char_to_lexeme = function
   | _ -> EOF
 
 let lexeme_to_str = function
+  | COMMA -> ","
+  | DOT -> "."
+  | MINUS -> "-"
+  | PLUS -> "+"
+  | SEMICOLON -> ";"
+  | SLASH -> "/"
+  | STAR -> "*"
   | LEFT_PAREN -> "("
   | RIGHT_PAREN -> ")"
   | LEFT_BRACE -> "{"
@@ -15,6 +41,13 @@ let lexeme_to_str = function
   | EOF -> ""
 
 let lexeme_display = function
+  | COMMA -> "COMMA"
+  | DOT -> "DOT"
+  | MINUS -> "MINUS"
+  | PLUS -> "PLUS"
+  | SEMICOLON -> "SEMICOLON"
+  | SLASH -> "SLASH"
+  | STAR -> "STAR"
   | LEFT_PAREN -> "LEFT_PAREN"
   | RIGHT_PAREN -> "RIGHT_PAREN"
   | LEFT_BRACE -> "LEFT_BRACE"
