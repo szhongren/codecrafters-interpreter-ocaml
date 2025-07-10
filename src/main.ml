@@ -1,18 +1,24 @@
-type lexeme = LEFT_PAREN | RIGHT_PAREN | EOF
+type lexeme = LEFT_PAREN | RIGHT_PAREN | LEFT_BRACE | RIGHT_BRACE | EOF
 
 let char_to_lexeme = function
   | '(' -> LEFT_PAREN
   | ')' -> RIGHT_PAREN
+  | '{' -> LEFT_BRACE
+  | '}' -> RIGHT_BRACE
   | _ -> EOF
 
 let lexeme_to_str = function
   | LEFT_PAREN -> "("
   | RIGHT_PAREN -> ")"
+  | LEFT_BRACE -> "{"
+  | RIGHT_BRACE -> "}"
   | EOF -> ""
 
 let lexeme_display = function
   | LEFT_PAREN -> "LEFT_PAREN"
   | RIGHT_PAREN -> "RIGHT_PAREN"
+  | LEFT_BRACE -> "LEFT_BRACE"
+  | RIGHT_BRACE -> "RIGHT_BRACE"
   | EOF -> "EOF"
 
 let rec scan str =
