@@ -105,32 +105,21 @@ let scan str =
   let rec scan_tokens acc has_errors =
     try
       let c = lexer.next_char () in
+
+      let handle_x_equal_lexeme single composite =
+        match lexer.peek_char () with
+        | Some '=' ->
+            let _ = lexer.next_char () in
+            scan_tokens (composite :: acc) has_errors
+        | _ -> scan_tokens (single :: acc) has_errors
+      in
+
       match c with
       | ' ' | '\t' | '\n' | '\r' -> scan_tokens acc has_errors
-      | '=' -> (
-          match lexer.peek_char () with
-          | Some '=' ->
-              let _ = lexer.next_char () in
-              scan_tokens (EQUAL_EQUAL :: acc) has_errors
-          | _ -> scan_tokens (EQUAL :: acc) has_errors)
-      | '!' -> (
-          match lexer.peek_char () with
-          | Some '=' ->
-              let _ = lexer.next_char () in
-              scan_tokens (BANG_EQUAL :: acc) has_errors
-          | _ -> scan_tokens (BANG :: acc) has_errors)
-      | '<' -> (
-          match lexer.peek_char () with
-          | Some '=' ->
-              let _ = lexer.next_char () in
-              scan_tokens (LESS_EQUAL :: acc) has_errors
-          | _ -> scan_tokens (LESS :: acc) has_errors)
-      | '>' -> (
-          match lexer.peek_char () with
-          | Some '=' ->
-              let _ = lexer.next_char () in
-              scan_tokens (GREATER_EQUAL :: acc) has_errors
-          | _ -> scan_tokens (GREATER :: acc) has_errors)
+      | '=' -> handle_x_equal_lexeme EQUAL EQUAL_EQUAL
+      | '!' -> handle_x_equal_lexeme BANG BANG_EQUAL
+      | '<' -> handle_x_equal_lexeme LESS LESS_EQUAL
+      | '>' -> handle_x_equal_lexeme GREATER GREATER_EQUAL
       | _ -> (
           match char_to_lexeme c with
           | Some token -> scan_tokens (token :: acc) has_errors
