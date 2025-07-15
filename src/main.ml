@@ -12,6 +12,8 @@ type lexeme =
   | RIGHT_BRACE
   | EQUAL_EQUAL
   | EQUAL
+  | BANG
+  | BANG_EQUAL
   | EOF
 
 type scan_result = { tokens : lexeme list; has_errors : bool }
@@ -29,6 +31,7 @@ let char_to_lexeme = function
   | '{' -> Some LEFT_BRACE
   | '}' -> Some RIGHT_BRACE
   | '=' -> Some EQUAL
+  | '!' -> Some BANG
   | _ -> None
 
 let lexeme_to_str = function
@@ -45,6 +48,8 @@ let lexeme_to_str = function
   | RIGHT_BRACE -> "}"
   | EQUAL_EQUAL -> "=="
   | EQUAL -> "="
+  | BANG -> "!"
+  | BANG_EQUAL -> "!="
   | EOF -> ""
 
 let lexeme_display = function
@@ -61,9 +66,17 @@ let lexeme_display = function
   | RIGHT_BRACE -> "RIGHT_BRACE"
   | EQUAL_EQUAL -> "EQUAL_EQUAL"
   | EQUAL -> "EQUAL"
+  | BANG -> "BANG"
+  | BANG_EQUAL -> "BANG_EQUAL"
   | EOF -> "EOF"
 
-let scan str =
+type lexer = {
+  input : char Seq.t ref;
+  next_char : unit -> char;
+  peek_char : unit -> char option;
+}
+
+let make_lexer str =
   let input = ref (String.to_seq str) in
   let next_char () =
     match !input () with
@@ -75,18 +88,27 @@ let scan str =
   let peek_char () =
     match !input () with Seq.Nil -> None | Seq.Cons (c, _) -> Some c
   in
+  { input; next_char; peek_char }
+
+let scan str =
+  let lexer = make_lexer str in
   let rec scan_tokens acc has_errors =
     try
-      let c = next_char () in
+      let c = lexer.next_char () in
       match c with
       | ' ' | '\t' | '\n' | '\r' -> scan_tokens acc has_errors
       | '=' -> (
-          match peek_char () with
+          match lexer.peek_char () with
           | Some '=' ->
-              let _ = next_char () in
-              (* consume the second '=' *)
+              let _ = lexer.next_char () in
               scan_tokens (EQUAL_EQUAL :: acc) has_errors
           | _ -> scan_tokens (EQUAL :: acc) has_errors)
+      | '!' -> (
+          match lexer.peek_char () with
+          | Some '=' ->
+              let _ = lexer.next_char () in
+              scan_tokens (BANG_EQUAL :: acc) has_errors
+          | _ -> scan_tokens (BANG :: acc) has_errors)
       | _ -> (
           match char_to_lexeme c with
           | Some token -> scan_tokens (token :: acc) has_errors
