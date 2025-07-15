@@ -128,7 +128,13 @@ let scan str =
       | '>' -> handle_x_equal_lexeme GREATER GREATER_EQUAL
       | '/' -> (
           match lexer.peek_char () with
-          | Some '/' -> raise End_of_file
+          | Some '/' ->
+              let continue = ref true in
+              while !continue do
+                let c = lexer.next_char () in
+                if c = '\n' then continue := false
+              done;
+              scan_tokens acc has_errors
           | _ -> scan_tokens (SLASH :: acc) has_errors)
       | _ -> (
           match char_to_lexeme c with
