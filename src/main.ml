@@ -14,6 +14,10 @@ type lexeme =
   | EQUAL
   | BANG
   | BANG_EQUAL
+  | LESS
+  | LESS_EQUAL
+  | GREATER
+  | GREATER_EQUAL
   | EOF
 
 type scan_result = { tokens : lexeme list; has_errors : bool }
@@ -32,6 +36,8 @@ let char_to_lexeme = function
   | '}' -> Some RIGHT_BRACE
   | '=' -> Some EQUAL
   | '!' -> Some BANG
+  | '<' -> Some LESS
+  | '>' -> Some GREATER
   | _ -> None
 
 let lexeme_to_str = function
@@ -50,6 +56,10 @@ let lexeme_to_str = function
   | EQUAL -> "="
   | BANG -> "!"
   | BANG_EQUAL -> "!="
+  | LESS -> "<"
+  | LESS_EQUAL -> "<="
+  | GREATER -> ">"
+  | GREATER_EQUAL -> ">="
   | EOF -> ""
 
 let lexeme_display = function
@@ -68,6 +78,10 @@ let lexeme_display = function
   | EQUAL -> "EQUAL"
   | BANG -> "BANG"
   | BANG_EQUAL -> "BANG_EQUAL"
+  | LESS -> "LESS"
+  | LESS_EQUAL -> "LESS_EQUAL"
+  | GREATER -> "GREATER"
+  | GREATER_EQUAL -> "GREATER_EQUAL"
   | EOF -> "EOF"
 
 type lexer = { next_char : unit -> char; peek_char : unit -> char option }
@@ -105,6 +119,18 @@ let scan str =
               let _ = lexer.next_char () in
               scan_tokens (BANG_EQUAL :: acc) has_errors
           | _ -> scan_tokens (BANG :: acc) has_errors)
+      | '<' -> (
+          match lexer.peek_char () with
+          | Some '=' ->
+              let _ = lexer.next_char () in
+              scan_tokens (LESS_EQUAL :: acc) has_errors
+          | _ -> scan_tokens (LESS :: acc) has_errors)
+      | '>' -> (
+          match lexer.peek_char () with
+          | Some '=' ->
+              let _ = lexer.next_char () in
+              scan_tokens (GREATER_EQUAL :: acc) has_errors
+          | _ -> scan_tokens (GREATER :: acc) has_errors)
       | _ -> (
           match char_to_lexeme c with
           | Some token -> scan_tokens (token :: acc) has_errors
