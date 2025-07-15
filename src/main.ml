@@ -120,6 +120,12 @@ let scan str =
       | '!' -> handle_x_equal_lexeme BANG BANG_EQUAL
       | '<' -> handle_x_equal_lexeme LESS LESS_EQUAL
       | '>' -> handle_x_equal_lexeme GREATER GREATER_EQUAL
+      | '/' -> (
+          match lexer.peek_char () with
+          | Some '/' ->
+              let _ = lexer.next_char () in
+              scan_tokens acc has_errors
+          | _ -> scan_tokens (SLASH :: acc) has_errors)
       | _ -> (
           match char_to_lexeme c with
           | Some token -> scan_tokens (token :: acc) has_errors
