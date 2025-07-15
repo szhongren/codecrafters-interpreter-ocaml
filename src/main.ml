@@ -84,21 +84,27 @@ let lexeme_display = function
   | GREATER_EQUAL -> "GREATER_EQUAL"
   | EOF -> "EOF"
 
-type lexer = { next_char : unit -> char; peek_char : unit -> char option }
+type lexer = {
+  line_number : int ref;
+  next_char : unit -> char;
+  peek_char : unit -> char option;
+}
 
 let make_lexer str =
   let input = ref (String.to_seq str) in
+  let line_number = ref 1 in
   let next_char () =
     match !input () with
     | Seq.Nil -> raise End_of_file
     | Seq.Cons (c, rest) ->
+        if c == '\n' then line_number := !line_number + 1;
         input := rest;
         c
   in
   let peek_char () =
     match !input () with Seq.Nil -> None | Seq.Cons (c, _) -> Some c
   in
-  { next_char; peek_char }
+  { line_number; next_char; peek_char }
 
 let scan str =
   let lexer = make_lexer str in
@@ -128,7 +134,8 @@ let scan str =
           match char_to_lexeme c with
           | Some token -> scan_tokens (token :: acc) has_errors
           | None ->
-              Printf.eprintf "[line 1] Error: Unexpected character: %c\n" c;
+              Printf.eprintf "[line %d] Error: Unexpected character: %c\n"
+                !(lexer.line_number) c;
               scan_tokens acc true)
     with End_of_file -> { tokens = List.rev (EOF :: acc); has_errors }
   in
