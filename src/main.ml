@@ -70,11 +70,7 @@ let lexeme_display = function
   | BANG_EQUAL -> "BANG_EQUAL"
   | EOF -> "EOF"
 
-type lexer = {
-  input : char Seq.t ref;
-  next_char : unit -> char;
-  peek_char : unit -> char option;
-}
+type lexer = { next_char : unit -> char; peek_char : unit -> char option }
 
 let make_lexer str =
   let input = ref (String.to_seq str) in
@@ -88,7 +84,7 @@ let make_lexer str =
   let peek_char () =
     match !input () with Seq.Nil -> None | Seq.Cons (c, _) -> Some c
   in
-  { input; next_char; peek_char }
+  { next_char; peek_char }
 
 let scan str =
   let lexer = make_lexer str in
