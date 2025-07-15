@@ -10,12 +10,11 @@ type lexeme =
   | RIGHT_PAREN
   | LEFT_BRACE
   | RIGHT_BRACE
+  | EQUAL_EQUAL
+  | EQUAL
   | EOF
 
-type scan_result = {
-  tokens: lexeme list;
-  has_errors: bool;
-}
+type scan_result = { tokens : lexeme list; has_errors : bool }
 
 let char_to_lexeme = function
   | ',' -> Some COMMA
@@ -29,6 +28,7 @@ let char_to_lexeme = function
   | ')' -> Some RIGHT_PAREN
   | '{' -> Some LEFT_BRACE
   | '}' -> Some RIGHT_BRACE
+  | '=' -> Some EQUAL
   | _ -> None
 
 let lexeme_to_str = function
@@ -43,6 +43,8 @@ let lexeme_to_str = function
   | RIGHT_PAREN -> ")"
   | LEFT_BRACE -> "{"
   | RIGHT_BRACE -> "}"
+  | EQUAL_EQUAL -> "=="
+  | EQUAL -> "="
   | EOF -> ""
 
 let lexeme_display = function
@@ -57,6 +59,8 @@ let lexeme_display = function
   | RIGHT_PAREN -> "RIGHT_PAREN"
   | LEFT_BRACE -> "LEFT_BRACE"
   | RIGHT_BRACE -> "RIGHT_BRACE"
+  | EQUAL_EQUAL -> "EQUAL_EQUAL"
+  | EQUAL -> "EQUAL"
   | EOF -> "EOF"
 
 let scan str =
@@ -68,15 +72,25 @@ let scan str =
         input := rest;
         c
   in
+  let peek_char () =
+    match !input () with Seq.Nil -> None | Seq.Cons (c, _) -> Some c
+  in
   let rec scan_tokens acc has_errors =
     try
       let c = next_char () in
       match c with
       | ' ' | '\t' | '\n' | '\r' -> scan_tokens acc has_errors
+      | '=' -> (
+          match peek_char () with
+          | Some '=' ->
+              let _ = next_char () in
+              (* consume the second '=' *)
+              scan_tokens (EQUAL_EQUAL :: acc) has_errors
+          | _ -> scan_tokens (EQUAL :: acc) has_errors)
       | _ -> (
           match char_to_lexeme c with
           | Some token -> scan_tokens (token :: acc) has_errors
-          | None -> 
+          | None ->
               Printf.eprintf "[line 1] Error: Unexpected character: %c\n" c;
               scan_tokens acc true)
     with End_of_file -> { tokens = List.rev (EOF :: acc); has_errors }
