@@ -18,7 +18,7 @@ type lexeme =
   | LESS_EQUAL
   | GREATER
   | GREATER_EQUAL
-  (* | STRING of string *)
+  | STRING of string
   | EOF
 
 type scan_result = { tokens : lexeme list; has_errors : bool }
@@ -61,7 +61,7 @@ let lexeme_to_str = function
   | LESS_EQUAL -> "<="
   | GREATER -> ">"
   | GREATER_EQUAL -> ">="
-  (* | STRING value -> "\"" ^ value ^ "\"" *)
+  | STRING value -> "\"" ^ value ^ "\""
   | EOF -> ""
 
 let lexeme_display = function
@@ -84,10 +84,10 @@ let lexeme_display = function
   | LESS_EQUAL -> "LESS_EQUAL"
   | GREATER -> "GREATER"
   | GREATER_EQUAL -> "GREATER_EQUAL"
-  (* | STRING _ -> "STRING" *)
+  | STRING _ -> "STRING"
   | EOF -> "EOF"
 
-let lexeme_value = function _ -> "null"
+let lexeme_value = function STRING str -> str | _ -> "null"
 
 type lexer = {
   line_number : int ref;
@@ -125,11 +125,25 @@ let scan str =
         | _ -> scan_tokens has_errors (single :: acc)
       in
 
-      let scan_comment =
+      let scan_comment () =
         while lexer.next_char () <> '\n' do
           ()
         done;
         acc
+      in
+
+      let scan_string () =
+        try
+          let str = ref "" in
+          while lexer.peek_char () <> Some '"' do
+            str := !str ^ String.make 1 (lexer.next_char ())
+          done;
+          let _ = lexer.next_char () in
+          (STRING !str :: acc, false)
+        with End_of_file ->
+          Printf.eprintf "[line %d] Error: Unterminated string.\n"
+            !(lexer.line_number);
+          (acc, true)
       in
 
       match c with
@@ -138,9 +152,12 @@ let scan str =
       | '!' -> handle_x_equal_lexeme BANG BANG_EQUAL
       | '<' -> handle_x_equal_lexeme LESS LESS_EQUAL
       | '>' -> handle_x_equal_lexeme GREATER GREATER_EQUAL
+      | '"' -> (
+          let string_result, string_error = scan_string () in
+          scan_tokens (has_errors || string_error) string_result)
       | '/' -> (
           match lexer.peek_char () with
-          | Some '/' -> scan_comment |> scan_tokens has_errors
+          | Some '/' -> scan_comment () |> scan_tokens has_errors
           | _ -> scan_tokens has_errors (SLASH :: acc))
       | _ -> (
           match char_to_lexeme c with
