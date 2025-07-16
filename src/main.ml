@@ -18,6 +18,7 @@ type lexeme =
   | LESS_EQUAL
   | GREATER
   | GREATER_EQUAL
+  | STRING of string
   | EOF
 
 type scan_result = { tokens : lexeme list; has_errors : bool }
@@ -60,6 +61,7 @@ let lexeme_to_str = function
   | LESS_EQUAL -> "<="
   | GREATER -> ">"
   | GREATER_EQUAL -> ">="
+  | STRING value -> "\"" ^ value ^ "\""
   | EOF -> ""
 
 let lexeme_display = function
@@ -82,7 +84,10 @@ let lexeme_display = function
   | LESS_EQUAL -> "LESS_EQUAL"
   | GREATER -> "GREATER"
   | GREATER_EQUAL -> "GREATER_EQUAL"
+  | STRING _ -> "STRING"
   | EOF -> "EOF"
+
+let lexeme_value = function STRING value -> value | _ -> "null"
 
 type lexer = {
   line_number : int ref;
@@ -108,7 +113,7 @@ let make_lexer str =
 
 let scan str =
   let lexer = make_lexer str in
-  let rec scan_tokens acc has_errors =
+  let rec scan_tokens has_errors acc =
     try
       let c = lexer.next_char () in
 
@@ -116,36 +121,37 @@ let scan str =
         match lexer.peek_char () with
         | Some '=' ->
             let _ = lexer.next_char () in
-            scan_tokens (composite :: acc) has_errors
-        | _ -> scan_tokens (single :: acc) has_errors
+            scan_tokens has_errors (composite :: acc)
+        | _ -> scan_tokens has_errors (single :: acc)
+      in
+
+      let scan_comment =
+        while lexer.next_char () <> '\n' do
+          ()
+        done;
+        acc
       in
 
       match c with
-      | ' ' | '\t' | '\n' | '\r' -> scan_tokens acc has_errors
+      | ' ' | '\t' | '\n' | '\r' -> scan_tokens has_errors acc
       | '=' -> handle_x_equal_lexeme EQUAL EQUAL_EQUAL
       | '!' -> handle_x_equal_lexeme BANG BANG_EQUAL
       | '<' -> handle_x_equal_lexeme LESS LESS_EQUAL
       | '>' -> handle_x_equal_lexeme GREATER GREATER_EQUAL
       | '/' -> (
           match lexer.peek_char () with
-          | Some '/' ->
-              let continue = ref true in
-              while !continue do
-                let c = lexer.next_char () in
-                if c = '\n' then continue := false
-              done;
-              scan_tokens acc has_errors
-          | _ -> scan_tokens (SLASH :: acc) has_errors)
+          | Some '/' -> scan_comment |> scan_tokens has_errors
+          | _ -> scan_tokens has_errors (SLASH :: acc))
       | _ -> (
           match char_to_lexeme c with
-          | Some token -> scan_tokens (token :: acc) has_errors
+          | Some token -> scan_tokens has_errors (token :: acc)
           | None ->
               Printf.eprintf "[line %d] Error: Unexpected character: %c\n"
                 !(lexer.line_number) c;
-              scan_tokens acc true)
+              scan_tokens true acc)
     with End_of_file -> { tokens = List.rev (EOF :: acc); has_errors }
   in
-  scan_tokens [] false
+  scan_tokens false []
 
 let () =
   if Array.length Sys.argv < 3 then (
@@ -167,7 +173,8 @@ let () =
   let result = scan file_contents in
   List.iter
     (fun lex ->
-      Printf.printf "%s %s null\n" (lexeme_display lex) (lexeme_to_str lex))
+      Printf.printf "%s %s %s\n" (lexeme_display lex) (lexeme_to_str lex)
+        (lexeme_value lex))
     result.tokens;
 
   exit (if result.has_errors then 65 else 0)
