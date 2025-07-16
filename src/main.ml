@@ -18,7 +18,7 @@ type lexeme =
   | LESS_EQUAL
   | GREATER
   | GREATER_EQUAL
-  | STRING of string
+  (* | STRING of string *)
   | EOF
 
 type scan_result = { tokens : lexeme list; has_errors : bool }
@@ -61,7 +61,7 @@ let lexeme_to_str = function
   | LESS_EQUAL -> "<="
   | GREATER -> ">"
   | GREATER_EQUAL -> ">="
-  | STRING value -> "\"" ^ value ^ "\""
+  (* | STRING value -> "\"" ^ value ^ "\"" *)
   | EOF -> ""
 
 let lexeme_display = function
@@ -84,10 +84,10 @@ let lexeme_display = function
   | LESS_EQUAL -> "LESS_EQUAL"
   | GREATER -> "GREATER"
   | GREATER_EQUAL -> "GREATER_EQUAL"
-  | STRING _ -> "STRING"
+  (* | STRING _ -> "STRING" *)
   | EOF -> "EOF"
 
-let lexeme_value = function STRING value -> value | _ -> "null"
+let lexeme_value = function _ -> "null"
 
 type lexer = {
   line_number : int ref;
