@@ -1,93 +1,6 @@
-type lexeme =
-  | COMMA
-  | DOT
-  | MINUS
-  | PLUS
-  | SEMICOLON
-  | SLASH
-  | STAR
-  | LEFT_PAREN
-  | RIGHT_PAREN
-  | LEFT_BRACE
-  | RIGHT_BRACE
-  | EQUAL_EQUAL
-  | EQUAL
-  | BANG
-  | BANG_EQUAL
-  | LESS
-  | LESS_EQUAL
-  | GREATER
-  | GREATER_EQUAL
-  | STRING of string
-  | EOF
+open Token
 
-type scan_result = { tokens : lexeme list; has_errors : bool }
-
-let char_to_lexeme = function
-  | ',' -> Some COMMA
-  | '.' -> Some DOT
-  | '-' -> Some MINUS
-  | '+' -> Some PLUS
-  | ';' -> Some SEMICOLON
-  | '/' -> Some SLASH
-  | '*' -> Some STAR
-  | '(' -> Some LEFT_PAREN
-  | ')' -> Some RIGHT_PAREN
-  | '{' -> Some LEFT_BRACE
-  | '}' -> Some RIGHT_BRACE
-  | '=' -> Some EQUAL
-  | '!' -> Some BANG
-  | '<' -> Some LESS
-  | '>' -> Some GREATER
-  | _ -> None
-
-let lexeme_to_str = function
-  | COMMA -> ","
-  | DOT -> "."
-  | MINUS -> "-"
-  | PLUS -> "+"
-  | SEMICOLON -> ";"
-  | SLASH -> "/"
-  | STAR -> "*"
-  | LEFT_PAREN -> "("
-  | RIGHT_PAREN -> ")"
-  | LEFT_BRACE -> "{"
-  | RIGHT_BRACE -> "}"
-  | EQUAL_EQUAL -> "=="
-  | EQUAL -> "="
-  | BANG -> "!"
-  | BANG_EQUAL -> "!="
-  | LESS -> "<"
-  | LESS_EQUAL -> "<="
-  | GREATER -> ">"
-  | GREATER_EQUAL -> ">="
-  | STRING value -> "\"" ^ value ^ "\""
-  | EOF -> ""
-
-let lexeme_display = function
-  | COMMA -> "COMMA"
-  | DOT -> "DOT"
-  | MINUS -> "MINUS"
-  | PLUS -> "PLUS"
-  | SEMICOLON -> "SEMICOLON"
-  | SLASH -> "SLASH"
-  | STAR -> "STAR"
-  | LEFT_PAREN -> "LEFT_PAREN"
-  | RIGHT_PAREN -> "RIGHT_PAREN"
-  | LEFT_BRACE -> "LEFT_BRACE"
-  | RIGHT_BRACE -> "RIGHT_BRACE"
-  | EQUAL_EQUAL -> "EQUAL_EQUAL"
-  | EQUAL -> "EQUAL"
-  | BANG -> "BANG"
-  | BANG_EQUAL -> "BANG_EQUAL"
-  | LESS -> "LESS"
-  | LESS_EQUAL -> "LESS_EQUAL"
-  | GREATER -> "GREATER"
-  | GREATER_EQUAL -> "GREATER_EQUAL"
-  | STRING _ -> "STRING"
-  | EOF -> "EOF"
-
-let lexeme_value = function STRING str -> str | _ -> "null"
+type scan_result = { tokens : Token.lexeme list; has_errors : bool }
 
 type lexer = {
   line_number : int ref;
@@ -139,7 +52,7 @@ let scan str =
             str := !str ^ String.make 1 (lexer.next_char ())
           done;
           let _ = lexer.next_char () in
-          (STRING !str :: acc, false)
+          (Token.STRING !str :: acc, false)
         with End_of_file ->
           Printf.eprintf "[line %d] Error: Unterminated string.\n"
             !(lexer.line_number);
@@ -152,21 +65,21 @@ let scan str =
       | '!' -> handle_x_equal_lexeme BANG BANG_EQUAL
       | '<' -> handle_x_equal_lexeme LESS LESS_EQUAL
       | '>' -> handle_x_equal_lexeme GREATER GREATER_EQUAL
-      | '"' -> (
+      | '"' ->
           let string_result, string_error = scan_string () in
-          scan_tokens (has_errors || string_error) string_result)
+          scan_tokens (has_errors || string_error) string_result
       | '/' -> (
           match lexer.peek_char () with
           | Some '/' -> scan_comment () |> scan_tokens has_errors
           | _ -> scan_tokens has_errors (SLASH :: acc))
       | _ -> (
-          match char_to_lexeme c with
+          match Token.char_to_lexeme c with
           | Some token -> scan_tokens has_errors (token :: acc)
           | None ->
               Printf.eprintf "[line %d] Error: Unexpected character: %c\n"
                 !(lexer.line_number) c;
               scan_tokens true acc)
-    with End_of_file -> { tokens = List.rev (EOF :: acc); has_errors }
+    with End_of_file -> { tokens = List.rev (Token.EOF :: acc); has_errors }
   in
   scan_tokens false []
 
@@ -190,8 +103,8 @@ let () =
   let result = scan file_contents in
   List.iter
     (fun lex ->
-      Printf.printf "%s %s %s\n" (lexeme_display lex) (lexeme_to_str lex)
-        (lexeme_value lex))
+      Printf.printf "%s %s %s\n" (Token.lexeme_display lex)
+        (Token.lexeme_to_str lex) (Token.lexeme_value lex))
     result.tokens;
 
   exit (if result.has_errors then 65 else 0)
